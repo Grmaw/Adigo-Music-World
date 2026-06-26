@@ -1,7 +1,13 @@
 import { Link } from 'react-router-dom';
 
 export default function ProductCard({ product }) {
-  const { id, name, price, description, category, image, inStock } = product;
+  const id = product.id;
+  const name = product.name;
+  const price = product.price;
+  const description = product.description;
+  const category = product.category || product.categories?.name || '';
+  const image = product.image || product.image_url || '';
+  const inStock = product.inStock ?? product.stock_quantity > 0;
 
   return (
     <article className="product-card">

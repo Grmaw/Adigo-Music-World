@@ -1,25 +1,64 @@
-import { useState, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
+import { Link } from 'react-router-dom';
 import SectionTitle from '../components/SectionTitle';
 import ProductCard from '../components/ProductCard';
 import NewsletterSection from '../components/NewsletterSection';
-import { products } from '../data/products';
+import { supabase } from '../lib/supabase';
 
 export default function StorePage() {
   const [categoryFilter, setCategoryFilter] = useState('');
-  const [sortBy, setSortBy]                 = useState('');
+  const [sortBy, setSortBy] = useState('');
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const cartCount = 2;
   const cartTotal = 98;
 
-  const categories = [...new Set(products.map((p) => p.category))];
+  useEffect(() => {
+    async function fetchProducts() {
+      setLoading(true);
+      setError(null);
+      const { data, error } = await supabase
+        .from('products')
+        .select(`
+          *,
+          categories (
+            id,
+            name
+          )
+        `)
+        .eq('is_active', true)
+        .order('id', { ascending: true });
+
+      if (error) {
+        setError(error.message);
+        setProducts([]);
+      } else {
+        setProducts(data || []);
+      }
+      setLoading(false);
+    }
+
+    fetchProducts();
+  }, []);
+
+  const categories = useMemo(() => {
+    const names = new Set(products.map((p) => p.categories?.name || p.category));
+    return [...names].filter(Boolean);
+  }, [products]);
 
   const filteredProducts = useMemo(() => {
     let list = [...products];
-    if (categoryFilter) list = list.filter((p) => p.category === categoryFilter);
-    if (sortBy === 'price-asc')  list.sort((a, b) => a.price - b.price);
+    if (categoryFilter) {
+      list = list.filter((p) =>
+        (p.categories?.name || p.category) === categoryFilter
+      );
+    }
+    if (sortBy === 'price-asc') list.sort((a, b) => a.price - b.price);
     if (sortBy === 'price-desc') list.sort((a, b) => b.price - a.price);
-    if (sortBy === 'name')       list.sort((a, b) => a.name.localeCompare(b.name));
+    if (sortBy === 'name') list.sort((a, b) => a.name.localeCompare(b.name));
     return list;
-  }, [categoryFilter, sortBy]);
+  }, [categoryFilter, sortBy, products]);
 
   return (
     <main>
@@ -76,13 +115,40 @@ export default function StorePage() {
 
             <SectionTitle label="COLLECTION" heading="All Products" />
 
-            <div className="store-products-grid" role="list">
-              {filteredProducts.map((product) => (
-                <div key={product.id} role="listitem">
-                  <ProductCard product={product} />
-                </div>
-              ))}
-            </div>
+            {/* Loading */}
+            {loading && (
+              <div className="shows-no-results" role="status">
+                <p style={{ fontSize: 16, color: 'var(--color-muted)' }}>Loading products...</p>
+              </div>
+            )}
+
+            {/* Error */}
+            {error && !loading && (
+              <div className="shows-no-results" role="alert">
+                <p style={{ fontSize: 16, color: 'var(--color-error)', marginBottom: 8 }}>
+                  Failed to load products.
+                </p>
+                <p style={{ fontSize: 14, color: 'var(--color-muted)' }}>{error}</p>
+              </div>
+            )}
+
+            {/* No products */}
+            {!loading && !error && filteredProducts.length === 0 && (
+              <div className="shows-no-results" role="status">
+                <p style={{ fontSize: 16, color: 'var(--color-muted)' }}>No products found.</p>
+              </div>
+            )}
+
+            {/* Product grid */}
+            {!loading && !error && filteredProducts.length > 0 && (
+              <div className="store-products-grid" role="list">
+                {filteredProducts.map((product) => (
+                  <div key={product.id} role="listitem">
+                    <ProductCard product={product} />
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Cart sidebar */}
