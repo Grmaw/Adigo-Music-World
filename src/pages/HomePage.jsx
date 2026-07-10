@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import HeroSection from '../components/HeroSection';
 import SectionTitle from '../components/SectionTitle';
@@ -8,7 +8,7 @@ import ProductCard from '../components/ProductCard';
 import NewsletterSection from '../components/NewsletterSection';
 import { songs } from '../data/songs';
 import { shows } from '../data/shows';
-import { products } from '../data/products';
+import { supabase } from '../lib/supabase';
 
 /* Lightweight scroll-reveal using IntersectionObserver */
 function useReveal() {
@@ -27,10 +27,46 @@ function useReveal() {
 export default function HomePage() {
   useReveal();
 
+  const [merchProducts, setMerchProducts] = useState([]);
+
+  useEffect(() => {
+    supabase
+      .from('products')
+      .select(`
+        *,
+        categories (
+          id,
+          name
+        )
+      `)
+      .eq('is_active', true)
+      .eq('is_featured', true)
+      .order('id', { ascending: true })
+      .limit(3)
+      .then(({ data }) => {
+        if (data && data.length > 0) {
+          setMerchProducts(data);
+        } else {
+          supabase
+            .from('products')
+            .select(`
+              *,
+              categories (
+                id,
+                name
+              )
+            `)
+            .eq('is_active', true)
+            .order('id', { ascending: true })
+            .limit(3)
+            .then(({ data: fallback }) => setMerchProducts(fallback || []));
+        }
+      });
+  }, []);
+
   const featuredSong  = songs[0];
   const smallSongs    = songs.slice(1, 4);
   const upcomingShows = shows.slice(0, 3);
-  const merchProducts = products.slice(0, 3);
 
   return (
     <main>

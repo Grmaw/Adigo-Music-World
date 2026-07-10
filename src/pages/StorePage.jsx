@@ -34,6 +34,7 @@ export default function StorePage() {
         setError(error.message);
         setProducts([]);
       } else {
+        console.log('Loaded products from Supabase:', data);
         setProducts(data || []);
       }
       setLoading(false);
