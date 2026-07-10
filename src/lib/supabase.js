@@ -9,6 +9,6 @@ if (!supabaseUrl || !supabaseKey) {
   throw new Error('Missing Supabase environment variables');
 }
 
-console.log('Using Supabase URL:', import.meta.env.VITE_SUPABASE_URL);
+console.log('Using external Supabase URL:', import.meta.env.VITE_SUPABASE_URL);
 
 export const supabase = createClient(supabaseUrl, supabaseKey);
